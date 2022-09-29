@@ -6,11 +6,14 @@
     <script src="https://unpkg.com/jspsych@7.3.0"></script>
     <script src="https://unpkg.com/@jspsych/plugin-html-keyboard-response@1.1.1"></script>
     <script src="https://unpkg.com/@jspsych/plugin-image-keyboard-response@1.1.1"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-preload@1.1.1"></script>
     <script src="stimuli.js"> </script>
     <script src="list1.js"> </script>
     <script src="list2.js"> </script>
     <script src="list3.js"> </script>
     <script src="list4.js"> </script>
+    <script src="practice.js"></script>
+    <script src="images.js"></script>
     </script>
     
     <link href="https://unpkg.com/jspsych@7.3.0/css/jspsych.css" rel="stylesheet" type="text/css" />
@@ -20,6 +23,14 @@
     on_finish: function() {  jsPsych.data.displayData(); }});
 
 var subject_id = Math.floor(Math.random()*100000);
+
+var preload = {
+    type: jsPsychPreload,
+    images: imagelist,
+    show_progress_bar: true,
+    data: {
+    typeoftrial: 'preload',
+    subject: subject_i }};
 
 var fixation1 = {
     type: jsPsychHtmlKeyboardResponse,
@@ -51,7 +62,8 @@ var sentence ={
     typeoftrial: 'fixation',
     list_number: jsPsych.timelineVariable('List'),
     trialcondition: jsPsych.timelineVariable('condition'),
-    subject: subject_id}}
+    subject: subject_id},
+}
 
 var picture = {
     type: jsPsychImageKeyboardResponse,
@@ -61,7 +73,38 @@ var picture = {
     typeoftrial: 'picture',
     list_number: jsPsych.timelineVariable('List'),
     trialcondition: jsPsych.timelineVariable('condition'),
-    subject: subject_id}}
+    subject: subject_id},
+    on_finish: function(data){
+    // score the response as correct or incorrect.
+    if(jsPsych.pluginAPI.compareKeys(data.response, jsPsych.timelineVariable('correct'))){
+
+data.correct = true;
+
+}
+    else {data.correct = false;}}}
+    
+var feedback = {
+    type: jsPsychHtmlKeyboardResponse,
+    stimulus: function(){
+    var last_trial_correct = jsPsych.data.get().last(1).values()[0].correct;
+    if(last_trial_correct){return "CORRECT!"; }
+    else {return "WRONG!";}},
+    choices : "NO_KEYS",
+    trial_duration: 2000}
+
+var practice_procedure = {
+    timeline: [fixation1, sentence, fixation2, picture, feedback],
+    timeline_variables: practicestimuli,
+    randomize_order: true};
+
+var move_to_experiment = {
+    type: jsPsychHtmlKeyboardResponse,
+    stimulus: 'The practice session is now over. Please press any key to start the experiment'}
+
+var instructions = {
+    type: jsPsychHtmlKeyboardResponse,
+    stimulus: 'On each trial, you will be shown a sentence. Press the space bar to continue after comprehending the sentence. You will then be shown a picture of an object and will be asked to decide if the displayed object was mentioned in the sentence or not. Respond as quickly as possible by pressing S for yes and N for no. You will now do a practice session with feedback. Press any key to continue'
+}
 
 var end_experiment = {
     type: jsPsychHtmlKeyboardResponse,
@@ -91,7 +134,7 @@ var experiment_procedure = {
     timeline_variables: teststimuli,
     randomize_order: true};
 
- jsPsych.run([experiment_procedure, end_experiment])
+ jsPsych.run([preload, instructions, practice_procedure, move_to_experiment, experiment_procedure, end_experiment])
 </script>
 </body>
 </html>
